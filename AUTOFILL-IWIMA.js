@@ -1,43 +1,48 @@
-(() => {
-  const links = Array.from(document.querySelectorAll('#dataPolling a[href^="javascript:isiPolling"]'));
-  let i = 0;
+// =============== KONFIGURASI ================
+const jawabanDefault = "4"; // bisa diubah ke 1, 2, 3, 5 sesuai keinginan
+const waktuTungguSetelahAmbil = 2000; // ms (2 detik)
+const waktuTungguSetelahIsi = 1500; // ms (1.5 detik)
+// ===========================================
 
-  function klikPollingBerikutnya() {
-    if (i >= links.length) {
-      alert("✅ Semua polling sudah dibuka.");
-      return;
-    }
-    links[i++].click();
+let currentIndex = 0;
+const totalPolling = 4; // Ganti sesuai jumlah matkul yang muncul
 
-    // Tunggu form muncul dulu sebelum klik berikutnya
-    setTimeout(() => {
-      isiFormPolling();
-      setTimeout(klikPollingBerikutnya, 1000); // Delay antar polling
-    }, 1000);
-  }
+async function isiSemuaPolling() {
+  for (let i = 0; i < totalPolling; i++) {
+    const pollingCell = document.querySelector(`#polling${i}`);
+    if (!pollingCell) continue;
 
-  function isiFormPolling() {
-    // Centang semua radio dengan value=5
-    document.querySelectorAll('#isiPertanyaan input[type="radio"]').forEach(radio => {
-      if (radio.value === "4") {
-        radio.checked = true;
+    const linkAmbil = pollingCell.querySelector("a");
+    if (linkAmbil) {
+      console.log(`Mengambil polling ke-${i + 1}...`);
+      linkAmbil.click();
+      await new Promise(r => setTimeout(r, waktuTungguSetelahAmbil));
+
+      // Jawab semua pertanyaan yang muncul
+      const radios = document.querySelectorAll('#isiPertanyaan input[type=radio]');
+      radios.forEach(radio => {
+        if (radio.value === jawabanDefault) {
+          radio.checked = true;
+        }
+      });
+
+      // Klik tombol Kirim jika ada
+      const kirimBtn = Array.from(document.querySelectorAll('#isiPertanyaan input[type=submit], #isiPertanyaan button'))
+        .find(btn => btn.value?.toLowerCase().includes('kirim') || btn.innerText.toLowerCase().includes('kirim'));
+
+      if (kirimBtn) {
+        console.log(`Mengirim polling ke-${i + 1}...`);
+        kirimBtn.click();
+        await new Promise(r => setTimeout(r, waktuTungguSetelahIsi));
+      } else {
+        console.warn("Tombol kirim tidak ditemukan");
       }
-    });
-
-    // Isi textarea jika ada
-    document.querySelectorAll('#isiPertanyaan textarea').forEach(textarea => {
-      textarea.value = "Terima kasih atas pembelajarannya.";
-    });
-
-    // Pilih opsi terakhir di dropdown jika ada
-    document.querySelectorAll('#isiPertanyaan select').forEach(select => {
-      select.selectedIndex = select.options.length - 1;
-    });
-
-    // Klik tombol submit jika ada
-    const submit = document.querySelector('#isiPertanyaan input[type="submit"], #isiPertanyaan button[type="submit"]');
-    if (submit) submit.click();
+    } else {
+      console.log(`Polling ke-${i + 1} sudah diisi, lanjut`);
+    }
   }
 
-  klikPollingBerikutnya();
-})();
+  alert("Semua kuisioner sudah diisi otomatis ✅");
+}
+
+isiSemuaPolling();
