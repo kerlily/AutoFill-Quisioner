@@ -1,55 +1,61 @@
-const nilai = "4"; // Ubah kalau ingin isi nilai lain (misal "3")
-const jedaClickAmbil = 800;
-const jedaTungguForm = 1000;
-const jedaKirim = 800;
+const nilaiRadio = "4"; // nilai 4 = Sangat Baik, ubah jika mau
+const isiTextArea = " "; // spasi satu aja biar valid
+const jedaSetelahSubmit = 1500;
 
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+async function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
-const ambilLinks = Array.from(document.querySelectorAll('td[id^="polling"] a'));
+async function isiPolling(index, linkElement) {
+  console.log(`▶️ Klik polling ${index + 1}`);
+  linkElement.click();
 
-async function isiFormPolling(index, el) {
-  console.log(`▶️ ${index + 1}. Klik 'Ambil'`);
-  el.click();
-  await delay(jedaTungguForm);
-
-  // Tunggu isi pertanyaan muncul di #content (dari AJAX)
-  let maxTry = 30;
-  while (document.querySelectorAll("#content input[type='radio']").length === 0 && maxTry > 0) {
-    await delay(200);
-    maxTry--;
+  // Tunggu konten form AJAX muncul
+  let tries = 30;
+  while (tries-- > 0 && !document.querySelector("#content form")) {
+    await delay(300);
   }
-
-  const radios = Array.from(document.querySelectorAll("#content input[type='radio']"));
-  if (radios.length === 0) {
-    console.warn(`❌ Tidak ada form di polling ke-${index + 1}`);
-    return;
-  }
-
-  // Check semua radio dengan value = nilai (default 4)
-  radios.forEach((r) => {
-    if (r.value === nilai) {
-      r.checked = true;
-    }
-  });
-
-  await delay(jedaKirim);
 
   const form = document.querySelector("#content form");
-  if (form) {
-    console.log(`✅ Mengirim polling ke-${index + 1}`);
-    form.submit();
-    await delay(jedaClickAmbil); // Tunggu reload ke daftar polling
-  } else {
-    console.warn(`❌ Form tidak ditemukan di polling ke-${index + 1}`);
+  if (!form) {
+    console.warn(`❌ Form polling ${index + 1} gagal dimuat.`);
+    return false;
   }
+
+  // Centang semua radio bernilai 4
+  const radios = form.querySelectorAll("input[type='radio'][value='" + nilaiRadio + "']");
+  radios.forEach(r => r.checked = true);
+
+  // Isi semua textarea dengan spasi
+  const textareas = form.querySelectorAll("textarea");
+  textareas.forEach(t => t.value = isiTextArea);
+
+  console.log(`✅ Submit polling ${index + 1}`);
+  form.submit();
+
+  return true;
 }
 
-async function isiSemuaPolling() {
-  console.log(`🚀 Mulai mengisi ${ambilLinks.length} polling`);
-  for (let i = 0; i < ambilLinks.length; i++) {
-    await isiFormPolling(i, ambilLinks[i]);
+async function mulaiIsiSemuaPolling() {
+  const pollingLinks = Array.from(document.querySelectorAll("td[id^='polling'] a"));
+
+  for (let i = 0; i < pollingLinks.length; i++) {
+    const link = document.querySelectorAll("td[id^='polling'] a")[i];
+
+    const success = await isiPolling(i, link);
+    if (!success) break;
+
+    // Tunggu redirect/load ulang ke halaman polling list
+    await delay(jedaSetelahSubmit);
+
+    // Tunggu sampai polling berikutnya muncul di DOM
+    let tries = 20;
+    while (tries-- > 0 && !document.querySelectorAll("td[id^='polling'] a")[i + 1]) {
+      await delay(300);
+    }
   }
-  alert("🎉 Semua kuisioner sudah diisi otomatis!");
+
+  alert("🎉 Semua polling sudah diisi!");
 }
 
-isiSemuaPolling();
+mulaiIsiSemuaPolling();
