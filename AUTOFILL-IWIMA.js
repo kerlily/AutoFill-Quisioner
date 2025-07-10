@@ -1,39 +1,47 @@
-const nilaiRadio = "4"; // nilai 4 = Sangat Baik, ubah jika mau
-const isiTextArea = " "; // spasi satu aja biar valid
-const jedaSetelahSubmit = 1500;
+const nilaiRadio = "4"; // Nilai tertinggi
+const isiTextArea = " "; // Isi agar form valid
+const jedaSetelahSubmit = 2000; // 2 detik setelah submit
 
 async function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function isiPolling(index, linkElement) {
-  console.log(`▶️ Klik polling ${index + 1}`);
+  console.log(`▶️ Ambil polling ke-${index + 1}`);
   linkElement.click();
 
-  // Tunggu konten form AJAX muncul
+  // Tunggu form kuisioner muncul
   let tries = 30;
-  while (tries-- > 0 && !document.querySelector("#content form")) {
+  while (tries-- > 0 && !document.forms["frmPolling"]) {
     await delay(300);
   }
 
-  const form = document.querySelector("#content form");
+  const form = document.forms["frmPolling"];
   if (!form) {
     console.warn(`❌ Form polling ${index + 1} gagal dimuat.`);
     return false;
   }
 
-  // Centang semua radio bernilai 4
-  const radios = form.querySelectorAll("input[type='radio'][value='" + nilaiRadio + "']");
-  radios.forEach(r => r.checked = true);
+  // Centang semua pilihan jawaban dengan nilai 4
+  for (let i = 1; i <= 7; i++) {
+    const radio = form.querySelector(`input[name="${i}"][value="${nilaiRadio}"]`);
+    if (radio) radio.checked = true;
+  }
 
-  // Isi semua textarea dengan spasi
-  const textareas = form.querySelectorAll("textarea");
-  textareas.forEach(t => t.value = isiTextArea);
+  // Isi kolom saran
+  const textarea = form.querySelector('textarea[name="8"]');
+  if (textarea) textarea.value = isiTextArea;
 
-  console.log(`✅ Submit polling ${index + 1}`);
-  form.submit();
-
-  return true;
+  // Submit form
+  const submitBtn = form.querySelector('input[type="submit"]');
+  if (submitBtn) {
+    console.log(`✅ Submit polling ${index + 1}`);
+    submitBtn.click();
+    return true;
+  } else {
+    console.error("❌ Tombol submit tidak ditemukan.");
+    return false;
+  }
 }
 
 async function mulaiIsiSemuaPolling() {
@@ -45,17 +53,17 @@ async function mulaiIsiSemuaPolling() {
     const success = await isiPolling(i, link);
     if (!success) break;
 
-    // Tunggu redirect/load ulang ke halaman polling list
+    // Tunggu halaman polling kembali
     await delay(jedaSetelahSubmit);
 
-    // Tunggu sampai polling berikutnya muncul di DOM
-    let tries = 20;
+    // Tunggu polling selanjutnya muncul
+    let tries = 30;
     while (tries-- > 0 && !document.querySelectorAll("td[id^='polling'] a")[i + 1]) {
       await delay(300);
     }
   }
 
-  alert("🎉 Semua polling sudah diisi!");
+  alert("✅ Semua kuisioner berhasil diisi!");
 }
 
 mulaiIsiSemuaPolling();
